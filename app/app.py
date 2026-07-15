@@ -11,7 +11,6 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
-from plotly.subplots import make_subplots
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -256,10 +255,13 @@ def page_dashboard_eda() -> None:
     )
 
     df = load_dataset()
+    df_plot = df.copy()
+    df_plot["Default_Label"] = df_plot["Defaulted?"].map({0: "Tidak Default", 1: "Default"})
+
     col1, col2, col3 = st.columns(3)
     col1.metric("Total Records", f"{len(df):,}")
     col2.metric("Default Rate", f"{df['Defaulted?'].mean():.2%}")
-    col3.metric("Fitur Numerik", "3")
+    col3.metric("Fitur", f"{df.shape[1] - 1}")
 
     st.markdown("---")
 
@@ -285,24 +287,23 @@ def page_dashboard_eda() -> None:
     st.subheader("Perbandingan Fitur vs Kelas Default")
     c1, c2 = st.columns(2)
 
-    for col, feature, container in [
+    for container, feature, feature_label in [
         (c1, "Bank Balance", "Saldo Bank"),
         (c2, "Annual Salary", "Gaji Tahunan"),
     ]:
         with container:
             fig_v = px.violin(
-                df,
-                x="Defaulted?",
+                df_plot,
+                x="Default_Label",
                 y=feature,
-                color="Defaulted?",
+                color="Default_Label",
                 box=True,
                 points="outliers",
-                color_discrete_map={0: "#3b82f6", 1: "#ef4444"},
-                labels={"Defaulted?": "Default", feature: col},
+                color_discrete_map={"Tidak Default": "#3b82f6", "Default": "#ef4444"},
+                labels={"Default_Label": "Default", feature: feature_label},
             )
             fig_v.update_layout(
-                title=f"{col} vs Default",
-                xaxis=dict(tickvals=[0, 1], ticktext=["Tidak", "Ya"]),
+                title=f"{feature_label} vs Default",
                 showlegend=False,
                 height=420,
             )
@@ -312,21 +313,26 @@ def page_dashboard_eda() -> None:
     st.subheader("Distribusi Fitur (Histogram)")
     feature_choice = st.selectbox("Pilih fitur", ["Bank Balance", "Annual Salary"])
     fig_hist = px.histogram(
-        df,
+        df_plot,
         x=feature_choice,
-        color="Defaulted?",
+        color="Default_Label",
         barmode="overlay",
         opacity=0.65,
         nbins=50,
-        color_discrete_map={0: "#3b82f6", 1: "#ef4444"},
-        labels={"Defaulted?": "Default"},
+        color_discrete_map={"Tidak Default": "#3b82f6", "Default": "#ef4444"},
+        labels={"Default_Label": "Default"},
     )
     fig_hist.update_layout(height=420)
     st.plotly_chart(fig_hist, use_container_width=True)
 
     # Correlation heatmap
     st.subheader("Heatmap Korelasi")
-    numeric_df = df[["Employed", "Bank Balance", "Annual Salary", "Defaulted?"]]
+    numeric_df = df[["Employed", "Bank Balance", "Annual Salary", "Defaulted?"]].copy()
+    numeric_df["Balance_to_Salary_Ratio"] = numeric_df["Bank Balance"] / numeric_df["Annual Salary"]
+    numeric_df["Balance_per_Employment"] = numeric_df["Bank Balance"] * numeric_df["Employed"]
+    numeric_df = numeric_df[
+        ["Employed", "Bank Balance", "Annual Salary", "Balance_to_Salary_Ratio", "Balance_per_Employment", "Defaulted?"]
+    ]
     corr = numeric_df.corr()
     fig_corr = go.Figure(
         data=go.Heatmap(
@@ -691,7 +697,6 @@ Sistem akan menampilkan:
 def main() -> None:
     st.set_page_config(
         page_title="Credit Default Risk",
-        page_icon="🏦",
         layout="wide",
         initial_sidebar_state="expanded",
     )

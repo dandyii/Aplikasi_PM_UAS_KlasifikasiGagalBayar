@@ -73,7 +73,7 @@ def main():
     df = pd.read_csv(csv_path)
 
     # 2. Data cleaning
-    df_clean = df.drop(columns=["Index"]).copy()
+    df_clean = df.drop(columns=["Index"], errors="ignore").copy()
     df_clean = df_clean.drop_duplicates().reset_index(drop=True)
     print(f"Shape setelah data cleaning (drop Index & duplicates): {df_clean.shape}")
 
@@ -166,8 +166,8 @@ def main():
     pr_auc_rf = average_precision_score(y_test, y_proba_rf)
     cm_rf = confusion_matrix(y_test, y_pred_rf).tolist()
 
-    fpr_rf, tpr_rf, _ = roc_curve(y_test, y_proba_rf)
-    p_rf, r_rf, _ = precision_recall_curve(y_test, y_proba_rf)
+    fpr_rf, tpr_rf, thr_roc_rf = roc_curve(y_test, y_proba_rf)
+    p_rf, r_rf, thr_pr_rf = precision_recall_curve(y_test, y_proba_rf)
 
     # Logistic Regression Evaluation
     y_pred_lr = lr_model.predict(X_test_scaled)
@@ -181,8 +181,8 @@ def main():
     pr_auc_lr = average_precision_score(y_test, y_proba_lr)
     cm_lr = confusion_matrix(y_test, y_pred_lr).tolist()
 
-    fpr_lr, tpr_lr, _ = roc_curve(y_test, y_proba_lr)
-    p_lr, r_lr, _ = precision_recall_curve(y_test, y_proba_lr)
+    fpr_lr, tpr_lr, thr_roc_lr = roc_curve(y_test, y_proba_lr)
+    p_lr, r_lr, thr_pr_lr = precision_recall_curve(y_test, y_proba_lr)
 
     # 9. Feature Importance dictionary (Random Forest) & Coefficients dictionary (Logistic Regression)
     rf_feat_importance = dict(zip(feature_names, rf_model.feature_importances_.tolist()))
@@ -225,11 +225,13 @@ def main():
             "confusion_matrix": cm_rf,
             "roc_curve": {
                 "fpr": fpr_rf.tolist(),
-                "tpr": tpr_rf.tolist()
+                "tpr": tpr_rf.tolist(),
+                "thresholds": thr_roc_rf.tolist(),
             },
             "pr_curve": {
                 "precision": p_rf.tolist(),
-                "recall": r_rf.tolist()
+                "recall": r_rf.tolist(),
+                "thresholds": thr_pr_rf.tolist(),
             },
             "feature_importance": rf_feat_importance
         },
@@ -243,11 +245,13 @@ def main():
             "confusion_matrix": cm_lr,
             "roc_curve": {
                 "fpr": fpr_lr.tolist(),
-                "tpr": tpr_lr.tolist()
+                "tpr": tpr_lr.tolist(),
+                "thresholds": thr_roc_lr.tolist(),
             },
             "pr_curve": {
                 "precision": p_lr.tolist(),
-                "recall": r_lr.tolist()
+                "recall": r_lr.tolist(),
+                "thresholds": thr_pr_lr.tolist(),
             },
             "coefficients": lr_coefficients
         }
