@@ -144,6 +144,7 @@ def inject_css() -> None:
 def load_artifacts() -> dict:
     return {
         "model": joblib.load(MODELS_DIR / "random_forest_model.pkl"),
+        "model_xgb": joblib.load(MODELS_DIR / "xgboost_model.pkl"),
         "scaler": joblib.load(MODELS_DIR / "scaler.pkl"),
         "feature_names": json.loads((MODELS_DIR / "feature_names.json").read_text(encoding="utf-8")),
         "salary_bins": json.loads((MODELS_DIR / "salary_bins.json").read_text(encoding="utf-8")),
@@ -424,13 +425,14 @@ def page_model_demo(artifacts: dict) -> None:
 def page_model_evaluation(artifacts: dict) -> None:
     st.markdown('<p class="hero-title">Evaluasi Model</p>', unsafe_allow_html=True)
     st.markdown(
-        '<p class="hero-subtitle">Perbandingan Random Forest vs Logistic Regression pada test set.</p>',
+        '<p class="hero-subtitle">Perbandingan Random Forest vs Logistic Regression vs XGBoost pada test set.</p>',
         unsafe_allow_html=True,
     )
 
     eval_data = artifacts["eval"]
     rf = eval_data["RandomForest"]
     lr = eval_data["LogisticRegression"]
+    xgb = eval_data["XGBoost"]
 
     # Metrics table
     st.subheader("Tabel Metrik Klasifikasi")
@@ -445,20 +447,26 @@ def page_model_evaluation(artifacts: dict) -> None:
                 lr["accuracy"], lr["precision"], lr["recall"],
                 lr["f1_score"], lr["roc_auc"], lr["pr_auc"],
             ],
+            "XGBoost": [
+                xgb["accuracy"], xgb["precision"], xgb["recall"],
+                xgb["f1_score"], xgb["roc_auc"], xgb["pr_auc"],
+            ],
         }
     )
     metrics_display = metrics_df.copy()
-    for col in ["Random Forest", "Logistic Regression"]:
+    for col in ["Random Forest", "Logistic Regression", "XGBoost"]:
         metrics_display[col] = metrics_display[col].apply(lambda x: f"{x:.4f}")
     st.dataframe(metrics_display, use_container_width=True, hide_index=True)
 
     # Confusion matrices
     st.subheader("Confusion Matrix")
-    c1, c2 = st.columns(2)
+    c1, c2, c3 = st.columns(3)
     with c1:
         st.plotly_chart(plot_confusion_matrix(rf["confusion_matrix"], "Random Forest"), use_container_width=True)
     with c2:
         st.plotly_chart(plot_confusion_matrix(lr["confusion_matrix"], "Logistic Regression"), use_container_width=True)
+    with c3:
+        st.plotly_chart(plot_confusion_matrix(xgb["confusion_matrix"], "XGBoost"), use_container_width=True)
 
     # ROC curves
     st.subheader("ROC Curve")
@@ -472,6 +480,11 @@ def page_model_evaluation(artifacts: dict) -> None:
         x=lr["roc_curve"]["fpr"], y=lr["roc_curve"]["tpr"],
         mode="lines", name=f"Logistic Regression (AUC={lr['roc_auc']:.3f})",
         line=dict(color="#f97316", width=2),
+    ))
+    fig_roc.add_trace(go.Scatter(
+        x=xgb["roc_curve"]["fpr"], y=xgb["roc_curve"]["tpr"],
+        mode="lines", name=f"XGBoost (AUC={xgb['roc_auc']:.3f})",
+        line=dict(color="#22c55e", width=2),
     ))
     fig_roc.add_trace(go.Scatter(
         x=[0, 1], y=[0, 1], mode="lines",
@@ -497,6 +510,11 @@ def page_model_evaluation(artifacts: dict) -> None:
         x=lr["pr_curve"]["recall"], y=lr["pr_curve"]["precision"],
         mode="lines", name=f"Logistic Regression (PR-AUC={lr['pr_auc']:.3f})",
         line=dict(color="#f97316", width=2),
+    ))
+    fig_pr.add_trace(go.Scatter(
+        x=xgb["pr_curve"]["recall"], y=xgb["pr_curve"]["precision"],
+        mode="lines", name=f"XGBoost (PR-AUC={xgb['pr_auc']:.3f})",
+        line=dict(color="#22c55e", width=2),
     ))
     fig_pr.update_layout(
         xaxis_title="Recall",
@@ -582,6 +600,14 @@ Random Forest dipilih sebagai model final karena:
 - Recall kelas default lebih seimbang untuk deteksi dini nasabah berisiko.
 - PR-AUC lebih representatif pada data imbalanced.
 - Kompatibel dengan SHAP TreeExplainer untuk interpretabilitas lokal dan global.
+
+---
+
+**5. Kenapa bukan XGBoost?**
+
+Walaupun XGBoost sangat kompetitif, PR-AUC pada cross validation (skenario SMOTE) sedikit di bawah Random Forest
+(RF: 0.9702 vs XGBoost: 0.9669). Selain itu, Random Forest sudah terintegrasi mulus dengan SHAP TreeExplainer yang
+dipakai di halaman **Model Demo**, sehingga jalur produksi lebih stabil tanpa perubahan besar pada interpretabilitas.
 
 </div>
         """,
@@ -705,6 +731,7 @@ def main() -> None:
     # Verify artifacts exist
     required = [
         MODELS_DIR / "random_forest_model.pkl",
+        MODELS_DIR / "xgboost_model.pkl",
         MODELS_DIR / "scaler.pkl",
         MODELS_DIR / "feature_names.json",
         MODELS_DIR / "salary_bins.json",

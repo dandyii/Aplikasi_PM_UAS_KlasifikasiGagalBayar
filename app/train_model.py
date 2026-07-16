@@ -154,6 +154,18 @@ def main():
     lr_model = LogisticRegression(max_iter=1000, random_state=RANDOM_STATE)
     lr_model.fit(X_train_res, y_train_res)
 
+    # XGBoost Classifier (hasil tuning GridSearchCV di notebook)
+    print("Melatih model XGBoost...")
+    xgb_model = XGBClassifier(
+        n_estimators=200,
+        max_depth=7,
+        learning_rate=0.1,
+        eval_metric="logloss",
+        random_state=RANDOM_STATE,
+        n_jobs=-1,
+    )
+    xgb_model.fit(X_train_res, y_train_res)
+
     # 8. Evaluasi pada Test Set
     # Random Forest Evaluation
     y_pred_rf = rf_model.predict(X_test_scaled)
@@ -185,16 +197,34 @@ def main():
     fpr_lr, tpr_lr, thr_roc_lr = roc_curve(y_test, y_proba_lr)
     p_lr, r_lr, thr_pr_lr = precision_recall_curve(y_test, y_proba_lr)
 
-    # 9. Feature Importance dictionary (Random Forest) & Coefficients dictionary (Logistic Regression)
+    # XGBoost Evaluation
+    y_pred_xgb = xgb_model.predict(X_test_scaled)
+    y_proba_xgb = xgb_model.predict_proba(X_test_scaled)[:, 1]
+
+    accuracy_xgb = accuracy_score(y_test, y_pred_xgb)
+    precision_xgb = precision_score(y_test, y_pred_xgb)
+    recall_xgb = recall_score(y_test, y_pred_xgb)
+    f1_xgb = f1_score(y_test, y_pred_xgb)
+    roc_auc_xgb = roc_auc_score(y_test, y_proba_xgb)
+    pr_auc_xgb = average_precision_score(y_test, y_proba_xgb)
+    cm_xgb = confusion_matrix(y_test, y_pred_xgb).tolist()
+
+    fpr_xgb, tpr_xgb, thr_roc_xgb = roc_curve(y_test, y_proba_xgb)
+    p_xgb, r_xgb, thr_pr_xgb = precision_recall_curve(y_test, y_proba_xgb)
+
+    # 9. Feature importance dictionary (Random Forest & XGBoost) & Coefficients dictionary (Logistic Regression)
     rf_feat_importance = dict(zip(feature_names, rf_model.feature_importances_.tolist()))
+    xgb_feat_importance = dict(zip(feature_names, xgb_model.feature_importances_.tolist()))
     lr_coefficients = dict(zip(feature_names, lr_model.coef_[0].tolist()))
 
     print("\n=== HASIL EVALUASI TEST SET ===")
     print(f"Random Forest - Accuracy: {accuracy_rf:.4f}, Precision (kelas 1): {precision_rf:.4f}, Recall (kelas 1): {recall_rf:.4f}, PR-AUC: {pr_auc_rf:.4f}")
     print(f"Logistic Regression - Accuracy: {accuracy_lr:.4f}, Precision (kelas 1): {precision_lr:.4f}, Recall (kelas 1): {recall_lr:.4f}, PR-AUC: {pr_auc_lr:.4f}")
+    print(f"XGBoost - Accuracy: {accuracy_xgb:.4f}, Precision (kelas 1): {precision_xgb:.4f}, Recall (kelas 1): {recall_xgb:.4f}, PR-AUC: {pr_auc_xgb:.4f}")
 
     # 10. Menyimpan file model & artifacts ke folder app/models/
     rf_path = os.path.join(models_dir, "random_forest_model.pkl")
+    xgb_path = os.path.join(models_dir, "xgboost_model.pkl")
     scaler_path = os.path.join(models_dir, "scaler.pkl")
     feature_names_path = os.path.join(models_dir, "feature_names.json")
     salary_bins_path = os.path.join(models_dir, "salary_bins.json")
@@ -202,6 +232,9 @@ def main():
 
     print(f"\nMenyimpan model Random Forest ke: {rf_path}")
     joblib.dump(rf_model, rf_path)
+
+    print(f"Menyimpan model XGBoost ke: {xgb_path}")
+    joblib.dump(xgb_model, xgb_path)
 
     print(f"Menyimpan scaler ke: {scaler_path}")
     joblib.dump(scaler, scaler_path)
@@ -255,7 +288,27 @@ def main():
                 "thresholds": thr_pr_lr.tolist(),
             },
             "coefficients": lr_coefficients
-        }
+        },
+        "XGBoost": {
+            "accuracy": accuracy_xgb,
+            "precision": precision_xgb,
+            "recall": recall_xgb,
+            "f1_score": f1_xgb,
+            "roc_auc": roc_auc_xgb,
+            "pr_auc": pr_auc_xgb,
+            "confusion_matrix": cm_xgb,
+            "roc_curve": {
+                "fpr": fpr_xgb.tolist(),
+                "tpr": tpr_xgb.tolist(),
+                "thresholds": thr_roc_xgb.tolist(),
+            },
+            "pr_curve": {
+                "precision": p_xgb.tolist(),
+                "recall": r_xgb.tolist(),
+                "thresholds": thr_pr_xgb.tolist(),
+            },
+            "feature_importance": xgb_feat_importance
+        },
     }
 
     print(f"Menyimpan eval_artifacts ke: {eval_artifacts_path}")
