@@ -752,6 +752,16 @@ def main() -> None:
         page = st.radio("Navigasi", PAGES, label_visibility="collapsed")
         st.markdown("---")
         st.caption("UAS Pembelajaran Mesin — Random Forest + SHAP")
+        st.markdown("### Identitas")
+        st.markdown(
+            """
+**Nama**: Dandy Prasetyo Nugroho  
+**NIM**: A11.2024.15645  
+**Kelas**: A11.4404  
+**Program Studi**: Teknik Informatika  
+**Universitas**: Universitas Dian Nuswantoro
+            """
+        )
 
     page_map = {
         "Dashboard EDA": page_dashboard_eda,
