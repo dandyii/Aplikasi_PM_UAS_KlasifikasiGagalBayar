@@ -752,7 +752,7 @@ def main() -> None:
         page = st.radio("Navigasi", PAGES, label_visibility="collapsed")
         st.markdown("---")
         st.caption("UAS Pembelajaran Mesin — Random Forest + SHAP")
-        st.markdown("### Identitas")
+        st.markdown("### Profil Pengembang")
         st.markdown(
             """
 **Nama**: Dandy Prasetyo Nugroho  
