@@ -642,7 +642,8 @@ yang benar-benar digunakan, bukan mengacu ke dataset lain.
 | `Defaulted?` | Label target (1 = gagal bayar, 0 = tidak) |
 
 **Referensi:**
-- Dataset lokal proyek: `Default_Fin.csv`
+- Sumber unduh dataset: [Kaggle - Loan Default Prediction](https://www.kaggle.com/datasets/kmldas/loan-default-prediction)
+- Dataset lokal proyek yang digunakan aplikasi: `Default_Fin.csv`
 - Diproses melalui pipeline training pada `app/train_model.py`
             """
         )
