@@ -629,8 +629,10 @@ def page_documentation() -> None:
             """
 ### Sumber Dataset
 
-Dataset **Default of Credit Card Clients** berasal dari UCI Machine Learning Repository,
-yang dikompilasi dari data kredit konsumen di Taiwan.
+Dataset yang digunakan pada aplikasi ini adalah file **`Default_Fin.csv`** yang tersimpan
+di folder proyek dan dipakai secara langsung pada proses training maupun inferensi aplikasi.
+Dengan demikian, dokumentasi aplikasi ini mengikuti struktur dan atribut pada file dataset
+yang benar-benar digunakan, bukan mengacu ke dataset lain.
 
 | Atribut | Deskripsi |
 |---------|-----------|
@@ -640,8 +642,8 @@ yang dikompilasi dari data kredit konsumen di Taiwan.
 | `Defaulted?` | Label target (1 = gagal bayar, 0 = tidak) |
 
 **Referensi:**
-- UCI ML Repository: [Default of Credit Card Clients](https://archive.ics.uci.edu/ml/datasets/default+of+credit+card+clients)
-- Kaggle: [Credit Card Default Prediction](https://www.kaggle.com/datasets/uciml/default-of-credit-card-clients-dataset)
+- Dataset lokal proyek: `Default_Fin.csv`
+- Diproses melalui pipeline training pada `app/train_model.py`
             """
         )
 
